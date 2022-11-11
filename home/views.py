@@ -1,7 +1,12 @@
 from django.shortcuts import render
-from django.views import View
-
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from .models import Article
+from .serializers import ArticleSerializer
 # Create your views here.
 
-class HomeView(View):
-    pass
+@api_view(['GET'])
+def post_page_list(request):
+    posts = Article.objects.all()
+    serializer = ArticleSerializer(posts, many=True)
+    return Response(serializer.data)

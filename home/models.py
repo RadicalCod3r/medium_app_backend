@@ -1,11 +1,12 @@
 from django.db import models
 from ckeditor.fields import RichTextField
+from accounts.models import User
 # Create your models here.
 
 
 class Article(models.Model):
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='articles')
     category = models.ForeignKey('self', on_delete=models.CASCADE)
-    ID = models.IntegerField()
     title = models.CharField(max_length=200)
     slug = models.SlugField(unique=True)
     image = models.ImageField()
@@ -14,10 +15,13 @@ class Article(models.Model):
     updated_at = models.DateTimeField()
     min_read = models.PositiveIntegerField()
 
+    class Meta:
+        ordering = ('-created_at', )
+
 
 class Category(models.Model):
-    ID = models.IntegerField()
     title = models.CharField(max_length=200)
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='category')
 
 
     def __str__(self):

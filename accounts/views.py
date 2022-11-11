@@ -66,10 +66,10 @@ class UserRegisterVerifyCodeView(View):
 
 class LoginView(APIView):
     def post(self, request):
-        email = request.data['email']
+        phone_number = request.data['phone_number']
         password = request.data['password']
 
-        user = User.objects.filter(email=email).first()
+        user = User.objects.filter(phone_number=phone_number).first()
 
         if user is None:
             raise AuthenticationFailed('User not found!')

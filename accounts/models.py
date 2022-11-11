@@ -6,14 +6,9 @@ from django.core.validators import RegexValidator
 
 
 class User(AbstractBaseUser, PermissionsMixin):
-                    ID = models.IntegerField()
+                    phone_regex = RegexValidator(regex=r'^09[0|1|2|3][0-9]{8}$', message='لطفا شماره موبایل خود را به درستی وارد کنید')
                     email = models.EmailField(max_length=255, unique=True)
-                    phone_number = models.CharField(max_length=11, unique=True, validators=[
-                    RegexValidator(
-                        regex=r'^\+?1?\d{9,15}$',
-                        message="Phone number must be entered in the format '+123456789'. Up to 15 digits allowed."
-                    ),
-                    ],)
+                    phone_number = models.CharField(max_length=11, unique=True, validators=[phone_regex])
                     first_name = models.CharField(max_length=100)
                     last_name = models.CharField(max_length=100)
                     title = models.CharField(max_length=200)
