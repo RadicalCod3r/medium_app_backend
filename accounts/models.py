@@ -1,18 +1,29 @@
 from django.db import models
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 
 # Create your models here.
 
-class User(models.Model):
-        ID = models.IntegerField()
-        email = models.EmailField(max_length=255, unique=True)
-        phone_number = models.CharField(max_length=11, unique=True)
-        first_name = models.CharField(max_length=100)
-        last_name = models.CharField(max_length=100)
-        title = models.CharField(max_length=200)
-        description = models.TextField()
 
-        def __str__(self):
-            return self.email
+class User(AbstractBaseUser, PermissionsMixin):
+                    ID = models.IntegerField()
+                    email = models.EmailField(max_length=255, unique=True)
+                    phone_number = models.CharField(max_length=11, unique=True)
+                    first_name = models.CharField(max_length=100)
+                    last_name = models.CharField(max_length=100)
+                    title = models.CharField(max_length=200)
+                    description = models.TextField()
+                    is_active = models.BooleanField(default=True)
+                    is_admin = models.BooleanField(default=False)
+
+                    USERNAME_FIELD = 'phone_number'
+                    REQUIRED_FIELDS = ['email', 'first_name', 'last_name']
+
+                    def __str__(self):
+                        return self.email
+
+                    @property
+                    def is_staff(self):
+                        return self.is_admin
 
 
 class OtpCode(models.Model):
