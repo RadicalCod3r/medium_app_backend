@@ -1,12 +1,21 @@
-from django.shortcuts import render
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from .models import Article
-from .serializers import ArticleSerializer
+from rest_framework.generics import ListAPIView, RetrieveAPIView
+from .models import Article, Category
+from .serializers import ArticleListSerializer,ArticleDetailSerializer, CategorySerializer
 # Create your views here.
 
-@api_view(['GET'])
-def post_page_list(request):
-    posts = Article.objects.all()
-    serializer = ArticleSerializer(posts, many=True)
-    return Response(serializer.data)
+
+class CategoryListView(ListAPIView):
+    serializer_class = CategorySerializer
+    queryset = Category.objects.all()
+
+
+class ArticleListView(ListAPIView):
+    queryset = Article.objects.filter()
+    serializer_class = ArticleListSerializer
+    filterset_fields = ['author']
+    search_fields = ['title', 'description']
+
+
+class ArticleDetailView(RetrieveAPIView):
+    queryset = Article.objects.filter()
+    serializer_class = ArticleDetailSerializer
