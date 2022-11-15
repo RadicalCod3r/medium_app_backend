@@ -13,7 +13,7 @@ class CategoryListView(ListAPIView):
 
 @api_view(['GET',])
 def list_trending_articles(request):
-    articles = Article.objects.all().order_by('-created_at')[:6]
+    articles = Article.objects.all().order_by('-created_at')
     serializer = ArticleListSerializer(articles, many=True)
     return Response(serializer.data)
 
