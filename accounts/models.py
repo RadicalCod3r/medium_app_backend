@@ -16,7 +16,7 @@ class User(AbstractBaseUser, PermissionsMixin):
                     is_admin = models.BooleanField(default=False)
 
                     USERNAME_FIELD = 'phone_number'
-                    REQUIRED_FIELDS = ['email', 'full_name', 'last_name']
+                    REQUIRED_FIELDS = ['email', 'full_name',]
 
                     def __str__(self):
                         return self.email
