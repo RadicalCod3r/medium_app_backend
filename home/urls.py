@@ -4,7 +4,6 @@ from home.views import CategoryListView, ArticleDetailView, ArticleListView
 
 
 
-app_name = "home"
 
 
 urlpatterns = [
