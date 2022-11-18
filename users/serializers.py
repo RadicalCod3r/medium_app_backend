@@ -5,18 +5,9 @@ from .models import User
 
 
 class UserSerializer(serializers.ModelSerializer):
-    name = serializers.SerializerMethodField(read_only=True)
-
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'title', 'description', 'name', 'image']
-
-    def get_name(self, obj):
-        name = obj.first_name
-        if name == '':
-            name = obj.email
-
-        return name
+        fields = ['id', 'phone', 'email', 'bio', 'description', 'name', 'image']
 
 
 class UserSerializerWithToken(UserSerializer):
@@ -24,7 +15,7 @@ class UserSerializerWithToken(UserSerializer):
     
     class Meta:
         model = User
-        fields = ['id', 'username', 'name', 'email', 'title', 'description', 'token', 'image']
+        fields = ['id', 'phone', 'name', 'email', 'bio', 'description', 'token', 'image']
 
     def get_token(self, obj):
         token = RefreshToken.for_user(obj)

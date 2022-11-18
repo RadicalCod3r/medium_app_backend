@@ -1,12 +1,50 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
+from django.core.validators import RegexValidator
+from users.managers import UserManager
 
 # Create your models here.
-class User(AbstractUser):
-    email = models.EmailField(unique=True, null=False, blank=False)
-    title = models.CharField(max_length=100)
-    description  = models.CharField(max_length=400)
-    image = models.ImageField(upload_to='images/users/', default='images/users/user.jpg')
+class User(AbstractBaseUser, PermissionsMixin):
+    phone_regex = RegexValidator(regex=r'^09[0|1|2|3][0-9]{8}$', message='Please enter a correct phone number')
+    phone = models.CharField(max_length=11, null=True, blank=True, validators=[phone_regex], unique=True)
+    name = models.CharField(max_length=100, blank=True, null=True)
+    email = models.EmailField()
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    last_login = models.DateTimeField(blank=True, null=True)
+    logged_in = models.BooleanField(default=False)
+    image = models.ImageField(upload_to='images/users', default='images/users/user.jpg')
+    bio = models.CharField(max_length=150, null=True, blank=True)
+    description = models.TextField(null=True, blank=True)
+
+    USERNAME_FIELD = 'phone'
+    REQUIRED_FIELDS = ['email',]
+
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
+    is_superuser = models.BooleanField(default=False)
+
+    objects = UserManager()
 
     def __str__(self):
-        return self.email
+        return self.phone
+
+    @property
+    def full_name(self):
+        if self.name != '':
+            return self.name
+        else:
+            return self.phone
+
+
+class PhoneOTP(models.Model):
+    phone_regex = RegexValidator(regex=r'^09[0|1|2|3][0-9]{8}$', message='Please enter a correct phone number')
+    phone = models.CharField(max_length=11, null=False, blank=False, validators=[phone_regex,], unique=True)
+    otp = models.CharField(max_length=6, null=True, blank=True)
+    expire_at = models.DateTimeField(blank=True)
+    resend_at = models.DateTimeField(blank=True)
+    count = models.IntegerField(default=1)
+    is_validated = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.phone
