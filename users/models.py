@@ -7,7 +7,7 @@ from users.managers import UserManager
 class User(AbstractBaseUser, PermissionsMixin):
     phone_regex = RegexValidator(regex=r'^09[0|1|2|3][0-9]{8}$', message='Please enter a correct phone number')
     phone = models.CharField(max_length=11, null=True, blank=True, validators=[phone_regex], unique=True)
-    name = models.CharField(max_length=100, blank=True)
+    name = models.CharField(max_length=100, blank=True, null=True)
     email = models.EmailField()
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     last_login = models.DateTimeField(blank=True, null=True)
@@ -15,7 +15,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     image = models.ImageField(upload_to='images/users', default='images/users/user.jpg')
 
     USERNAME_FIELD = 'phone'
-    REQUIRED_FIELDS = []
+    REQUIRED_FIELDS = ['email',]
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
