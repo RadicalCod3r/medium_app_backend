@@ -13,6 +13,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     last_login = models.DateTimeField(blank=True, null=True)
     logged_in = models.BooleanField(default=False)
     image = models.ImageField(upload_to='images/users', default='images/users/user.jpg')
+    bio = models.CharField(max_length=150, null=True, blank=True)
+    description = models.TextField(null=True, blank=True)
 
     USERNAME_FIELD = 'phone'
     REQUIRED_FIELDS = ['email',]
