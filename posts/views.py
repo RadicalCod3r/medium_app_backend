@@ -35,3 +35,9 @@ def post_detail(request, id):
         return Response(serializer.data)
     except:
         return Response({'detail': 'error finding the post'})
+
+@api_view(['GET',])
+def get_random_posts(request, id):
+    posts = Post.objects.get(_pk=id).order_by('created_at')[:3]
+    serializer = PostListSerializer(posts, many=False)
+    return Response(serializer.data)
