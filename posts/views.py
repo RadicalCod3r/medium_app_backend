@@ -4,7 +4,7 @@ from django.shortcuts import render
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from django.core.paginator import Paginator
-
+import random
 # Create your views here.
 @api_view(['GET',])
 def list_posts(request):
@@ -38,6 +38,6 @@ def post_detail(request, id):
 
 @api_view(['GET',])
 def get_random_posts(request, id):
-    posts = Post.objects.get(_pk=id).order_by('-created_at')[:3]
+    posts = Post.objects.get(pk=id).order_by('-created_at')[:3]
     serializer = PostListSerializer(posts, many=False)
     return Response(serializer.data)
