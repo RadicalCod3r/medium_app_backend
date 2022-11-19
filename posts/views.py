@@ -38,6 +38,13 @@ def post_detail(request, id):
 
 @api_view(['GET',])
 def get_random_posts(request, id):
-    posts = Post.objects.get(pk=id).order_by('-created_at')[:3]
-    serializer = PostListSerializer(posts, many=False)
+    random_post = None
+    post_count = Post.objects.all().count() + 1
+    while not Post.objects.get().filter(id=random_post).exists():
+        for obj in range(post_count):
+            author = random.randint(0, post_count)
+            if Post.objects.all().filter(id=author).exists():
+                random_post=author
+                return random_post
+    serializer = PostListSerializer(random_post, many=False)
     return Response(serializer.data)
