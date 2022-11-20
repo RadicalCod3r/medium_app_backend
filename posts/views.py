@@ -1,3 +1,4 @@
+from users.models import User
 from posts.serializers import PostDetailSerializer, PostListSerializer
 from posts.models import Post
 from django.shortcuts import render
@@ -5,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from django.core.paginator import Paginator
 import random
+
 # Create your views here.
 @api_view(['GET',])
 def list_posts(request):
@@ -37,14 +39,17 @@ def post_detail(request, id):
         return Response({'detail': 'error finding the post'})
 
 @api_view(['GET',])
-def get_random_posts(request, id):
-    random_post = None
-    post_count = Post.objects.all().count() + 1
-    while not Post.objects.get().filter(id=random_post).exists():
-        for obj in range(post_count):
-            author = random.randint(0, post_count)
-            if Post.objects.all().filter(id=author).exists():
-                random_post=author
-                return random_post
-    serializer = PostListSerializer(random_post, many=False)
+def get_random_posts(request, author_id):
+    random_posts = []
+
+    user = User.objects.get(pk=author_id)
+    user_posts = user.posts.all()
+
+    pid_1, pid_2, pid_3 = random.sample(range(0, user_posts.count()), 3)
+
+    for id, post in enumerate(user_posts):
+        if id == pid_1 or id == pid_2 or id == pid_3:
+            random_posts.append(post)
+
+    serializer = PostListSerializer(random_posts, many=True)
     return Response(serializer.data)
