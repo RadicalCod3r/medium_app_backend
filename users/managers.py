@@ -6,8 +6,6 @@ class UserManager(BaseUserManager):
             raise ValueError('You should provide a phone number.')
         if not email:
             raise ValueError('You should provide an email address.')
-        if not password:
-            raise ValueError('You should provide a password.')
         user = self.model(phone = phone, email = email, name = name)
         user.set_password(password)
         user.is_staff = is_staff

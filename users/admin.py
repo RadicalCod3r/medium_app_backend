@@ -11,15 +11,15 @@ class UserAdmin(BaseUserAdmin):
     list_display = ('phone', 'name', 'email', 'is_staff', 'is_superuser')
     list_filter = ('is_staff', 'is_superuser', 'is_active')
 
-    fieldsets = (
+    fieldsets = [
         (None, {'fields': ('phone', 'email', 'password', 'image')}),
         ('Personal Info', {'fields': ('name', 'bio', 'description', 'logged_in')}),
         ('Permissions', {'fields': ('is_staff', 'is_superuser', 'is_active')})
-    )
+    ]
 
-    add_fieldsets = (
+    add_fieldsets = [
         (None, {'fields': ('phone', 'email', 'password1', 'password2')})
-    )
+    ]
 
     search_fields = ('phone', 'email', 'name')
     ordering = ('last_login',)

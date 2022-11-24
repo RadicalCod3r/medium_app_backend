@@ -1,3 +1,4 @@
+import re
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import MyTokenObtainPairSerializer, UserSerializer, UserSerializerWithToken
 from rest_framework.response import Response
@@ -8,13 +9,9 @@ from datetime import timedelta
 from random import randint
 from datetime import datetime
 import pytz
-from django.contrib.auth.hashers import make_password
+from django.contrib.auth.hashers import check_password
 
 # Create your views here.
-class MyTokenObtainPairView(TokenObtainPairView):
-    serializer_class = MyTokenObtainPairSerializer
-
-
 @api_view(['GET',])
 @permission_classes([permissions.IsAuthenticated,])
 def user_profile(request):
@@ -34,13 +31,12 @@ def list_users(request):
     return Response(serializer.data)
 
 
-
 utc = pytz.UTC
 
 
 def validate_phone(phone):
-    pass
-
+    pattern = re.compile("^09[0|1|2|3][0-9]{8}$", re.IGNORECASE)
+    return pattern.match(phone) is not None
 
 
 def get_otp_code(phone):
@@ -53,8 +49,8 @@ def get_otp_code(phone):
 
 
 
-def send_otp_code(phone, code):
-    pass
+# def send_otp_code(phone, code):
+#     print(code)
 
 
 @api_view(['POST'])
@@ -65,20 +61,56 @@ def verify_phone_send_otp_code(request):
         phone = str(phone_number)
 
         if validate_phone(phone):
-            key = get_otp_code(phone)
+            user = User.objects.filter(phone__iexact=phone)
 
-            if key:
-                phone_otp = PhoneOTP.objects.filter(phone__iexact=phone)
-                now = datetime.now().replace(tzinfo=utc)
+            if user.exists():
+                return Response({'detail': 'An account with this phone number already exists'}, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                key = get_otp_code(phone)
 
-                if phone_otp.exists():
-                    phone_otp = phone_otp.first()
-                    created_at = phone_otp.created_at.replace(tzinfo=utc)
-                    obj_expiration_date = created_at + timedelta(days=1)
+                if key:
+                    phone_otp = PhoneOTP.objects.filter(phone__iexact=phone)
+                    now = datetime.now().replace(tzinfo=utc)
 
-                    if now > obj_expiration_date:
-                        phone_otp.delete()
+                    if phone_otp.exists():
+                        phone_otp = phone_otp.first()
+                        created_at = phone_otp.created_at.replace(tzinfo=utc)
+                        obj_expiration_date = created_at + timedelta(days=1)
 
+                        if now > obj_expiration_date:
+                            phone_otp.delete()
+
+                            new_phone_otp = PhoneOTP.objects.create(
+                                phone = phone,
+                                otp = str(key),
+                                resend_at = now + timedelta(minutes=2),
+                                expire_at = now + timedelta(minutes=2)
+                            )
+
+                            # send_otp_code(phone[1:], str(key))
+
+                            return Response({'detail': 'Six digit code has been set to your phone number', 'phone': phone, 'resend_at': new_phone_otp.resend_at, 'expire_at': new_phone_otp.expire_at})
+                        else:
+                            count = phone_otp.count
+
+                            if count <= 10:
+                                resend_at = phone_otp.resend_at.replace(tzinfo=utc)
+
+                                if now > resend_at:
+                                    phone_otp.otp = str(key)
+                                    phone_otp.resend_at = now + timedelta(minutes=3)
+                                    phone_otp.expire_at = now + timedelta(minutes=3)
+                                    phone_otp.count = count + 1
+                                    phone_otp.save()
+
+                                    # send_otp_code(phone[1:], str(key))
+
+                                    return Response({'detail': 'Six digit code has been set to your phone numbe', 'phone': phone, 'resend_at': phone_otp.resend_at, 'expire_at': phone_otp.expire_at})                
+                                else:
+                                    return Response({'detail': 'Please wait for a resend'}, status=status.HTTP_400_BAD_REQUEST)
+                            else:
+                                return Response({'detail': 'You are not allowed to get otp code for 24 hours'}, status=status.HTTP_403_FORBIDDEN)
+                    else:
                         new_phone_otp = PhoneOTP.objects.create(
                             phone = phone,
                             otp = str(key),
@@ -86,46 +118,15 @@ def verify_phone_send_otp_code(request):
                             expire_at = now + timedelta(minutes=3)
                         )
 
-                        send_otp_code(phone[1:], str(key))
+                        # send_otp_code(phone[1:], str(key))
 
-                        return Response({'detail': 'کد شش رقمی با موفقیت به موبایل شما ارسال شد.', 'phone': phone, 'resend_at': new_phone_otp.resend_at, 'expire_at': new_phone_otp.expire_at})
-                    else:
-                        count = phone_otp.count
-
-                        if count <= 10:
-                            resend_at = phone_otp.resend_at.replace(tzinfo=utc)
-
-                            if now > resend_at:
-                                phone_otp.otp = str(key)
-                                phone_otp.resend_at = now + timedelta(minutes=3)
-                                phone_otp.expire_at = now + timedelta(minutes=3)
-                                phone_otp.count = count + 1
-                                phone_otp.save()
-
-                                send_otp_code(phone[1:], str(key))
-
-                                return Response({'detail': 'کد شش رقمی با موفقیت به موبایل شما ارسال شد.', 'phone': phone, 'resend_at': phone_otp.resend_at, 'expire_at': phone_otp.expire_at})                
-                            else:
-                                return Response({'detail': 'لطفا منتظر بمانید تا امکان ارسال مجدد کد برای شما فعال شود. سپس یکبار صفحه را رفرش کنید.'}, status=status.HTTP_400_BAD_REQUEST)
-                        else:
-                            return Response({'detail': 'شما تا 24 ساعت مجاز به دریافت کد جدید نیستید.'}, status=status.HTTP_403_FORBIDDEN)
+                        return Response({'detail': 'Six digit code has been set to your phone numbe', 'phone': phone, 'resend_at': new_phone_otp.resend_at, 'expire_at': new_phone_otp.expire_at})
                 else:
-                    new_phone_otp = PhoneOTP.objects.create(
-                        phone = phone,
-                        otp = str(key),
-                        resend_at = now + timedelta(minutes=3),
-                        expire_at = now + timedelta(minutes=3)
-                    )
-
-                    send_otp_code(phone[1:], str(key))
-
-                    return Response({'detail': 'کد شش رقمی با موفقیت به موبایل شما ارسال شد.', 'phone': phone, 'resend_at': new_phone_otp.resend_at, 'expire_at': new_phone_otp.expire_at})
-            else:
-                return Response({'detail': 'خطایی در هنگام ارسال کد پیش آمد.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    return Response({'detail': 'Something wrong when sending the code'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
-            return Response({'detail': 'شماره موبایل وارد شده اشتباه است.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'Entered phone number is wrong'}, status=status.HTTP_400_BAD_REQUEST)
     else:
-        return Response({'detail': 'لطفا شماره موبایل خود را وارد کنید.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'detail': 'Please enter your phone number'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])
@@ -149,37 +150,27 @@ def verify_otp(request):
                     if str(sent_otp) == str(otp):
                         phone_otp.is_validated = True
                         phone_otp.save()
-
-                        user = User.objects.filter(phone__iexact=phone)
-
-                        user_exists = False
-                        is_admin_user = False
-
-                        if user.exists():
-                            user_exists = True
-
-                            user = user.first()
-                            is_admin_user = user.is_staff
-
-                        return Response({'detail': 'درستی کد با موفقیت تایید شد. وارد شوید یا ثبت نام کنید.', 'user_exists': user_exists, 'is_admin_user': is_admin_user})
+                        return Response({'detail': 'Successfully confirmed the code'})
                     else:
-                        return Response({'detail': 'کد وارد شده اشتباه است.'}, status=status.HTTP_400_BAD_REQUEST)
+                        return Response({'detail': 'Entered OTP is wrong'}, status=status.HTTP_400_BAD_REQUEST)
                 else:
-                    return Response({'detail': 'کد ارسالی منقضی شده است. به مرحله قبل بازگردید و کد را مجددا ارسال کنید.'}, status=status.HTTP_406_NOT_ACCEPTABLE)
+                    return Response({'detail': 'Code has been expired. Please go back and resend.'}, status=status.HTTP_406_NOT_ACCEPTABLE)
             else:
-                return Response({'detail': 'ابتدا باید شماره موبایل خود را تایید کنید.'}, status=status.HTTP_403_FORBIDDEN)
+                return Response({'detail': 'First you should verify your phone number'}, status=status.HTTP_403_FORBIDDEN)
         else:
-            return Response({'detail': 'شماره موبایل وارد شده اشتباه است.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'Entered phone number is wrong'}, status=status.HTTP_400_BAD_REQUEST)
     else:
-        return Response({'detail': 'لطفا شماره موبایل و کد ارسال شده را وارد کنید.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'detail': 'Please enter phone number and otp code'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])
 def register(request):
     phone_number = request.data.get('phone')
     name = request.data.get('name')
+    email = request.data.get('email')
+    password = request.data.get('password')
 
-    if phone_number and name:
+    if phone_number and name and email and password:
         phone = str(phone_number)
 
         if validate_phone(phone):
@@ -187,93 +178,91 @@ def register(request):
             user = User.objects.filter(phone__iexact=phone)
 
             if user.exists():
-                return Response({'detail': 'کاربری با این شماره موبایل درحال حاضر وجود دارد.'}, status=status.HTTP_406_NOT_ACCEPTABLE)
+                return Response({'detail': 'An account with this phone number already exists'}, status=status.HTTP_406_NOT_ACCEPTABLE)
             else:
                 if phone_otp.exists():
                     phone_otp = phone_otp.first()
 
                     if phone_otp.is_validated:
-                        user = User.objects.create_user(
-                            phone = phone,
-                            name = str(name),
-                            password = phone_otp.otp,
-                        )
-                        user.logged_in = True
-                        user.save()
+                        password = str(password)
+                        if len(password) >= 5:
+                            user = User.objects.create_user(
+                                phone = phone,
+                                name = str(name),
+                                email = email
+                            )
+                            user.set_password(password)
+                            user.logged_in = True
+                            user.save()
 
-                        serializer = UserSerializerWithToken(user, many=False)
-                        return Response(serializer.data)
+                            serializer = UserSerializerWithToken(user, many=False)
+                            return Response(serializer.data)
+                        else:
+                            return Response({'detail': 'You should provide a password with at least 5 characters'}, status=status.HTTP_406_NOT_ACCEPTABLE)
                     else:
-                        return Response({'detail': 'ابتدا باید کد ارسال شده را تایید کنید.'}, status=status.HTTP_403_FORBIDDEN)
+                        return Response({'detail': 'First you should verify OTP code'}, status=status.HTTP_403_FORBIDDEN)
                 else:
-                    return Response({'detail': 'ابتدا باید شماره موبایل خود را تایید کنید.'}, status=status.HTTP_403_FORBIDDEN)
+                    return Response({'detail': 'You should verify your phone number first'}, status=status.HTTP_403_FORBIDDEN)
         else:
-            return Response({'detail': 'شماره موبایل وارد شده اشتباه است.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'Entered phone number is wrong'}, status=status.HTTP_400_BAD_REQUEST)
     else:
-        return Response({'detail': 'لطفا نام و شماره موبایل خود را وارد کنید.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'detail': 'Please enter your phone, name, email and password'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 
 @api_view(['POST'])
 def login(request):
     phone_number = request.data.get('phone')
+    password = request.data.get('password')
 
     if phone_number:
         phone = str(phone_number)
         
-        if validate_phone(phone):
-            phone_otp = PhoneOTP.objects.filter(phone__iexact=phone)
-
-            if phone_otp.exists():
-                phone_otp = phone_otp.first()
-                
-                if phone_otp.is_validated:
-                    user = User.objects.filter(phone__iexact=phone)
-
-                    if user.exists():
-                        user = user.first()
-                        user.logged_in = True
-                        user.password = make_password(phone_otp.otp)
-                        user.save()
-
-                        serializer = UserSerializerWithToken(user, many=False)
-
-                        return Response(serializer.data)
-                    else:
-                        return Response({'detail': 'ابتدا باید ثبت نام کنید.'}, status=status.HTTP_403_FORBIDDEN)
-                else:
-                    return Response({'detail': 'ابتدا باید کد ارسال شده را تایید کنید.'}, status=status.HTTP_403_FORBIDDEN)
-            else:
-                return Response({'detail': 'ابتدا باید شماره موبایل خود را تایید کنید.'}, status=status.HTTP_403_FORBIDDEN)
-        else:
-            return Response({'detail': 'شماره موبایل وارد شده اشتباه است.'}, status=status.HTTP_400_BAD_REQUEST)
-    else:
-        return Response({'detail': 'لطفا شماره موبایل خود را وارد کنید.'}, status=status.HTTP_400_BAD_REQUEST)
-
-
-@api_view(['POST'])
-def logout(request):
-    phone_number = request.data.get('phone')
-
-    if phone_number:
-        phone = str(phone_number)
-
-        if validate_phone(phone):
+        if validate_phone(phone):                
             user = User.objects.filter(phone__iexact=phone)
 
             if user.exists():
                 user = user.first()
-                user.logged_in = False
-                user.save()
 
-                phone_otp = PhoneOTP.objects.get(phone__iexact=phone)
+                if user.check_password(password):
+                    user.logged_in = True
+                    user.save()
+
+                    serializer = UserSerializerWithToken(user, many=False)
+
+                    return Response(serializer.data)
+                else:
+                    return Response({'detail': 'Entered password is wrong'}, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response({'detail': 'No account found with this phone number'}, status=status.HTTP_404_NOT_FOUND)
+
+        else:
+            return Response({'detail': 'Entered phone number is wrong'}, status=status.HTTP_400_BAD_REQUEST)
+    else:
+        return Response({'detail': 'Please enter your phone number and password'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+def logout(request):
+    user_id = request.user.id
+
+    if user_id:
+        user = User.objects.filter(pk=user_id)
+
+        if user.exists():
+            user = user.first()
+            user.logged_in = False
+            user.save()
+
+            phone_otp = PhoneOTP.objects.filter(phone__iexact=user.phone)
+
+            if phone_otp.exists():
+                phone_otp = phone_otp.first()
                 phone_otp.is_validated = False
                 phone_otp.save()
 
-                return Response({'detail': 'کاربر با موفقیت خارج شد.'})
-            else:
-                return Response({'detail': 'چنین کاربری در سامانه وجود ندارد.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'Logout successfully'})
         else:
-            return Response({'detail': 'شماره موبایل وارد شده اشتباه است.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'User doesnt exist'}, status=status.HTTP_404_NOT_FOUND)
     else:
-        return Response({'detail': 'لطفا شماره موبایل خود را وارد کنید.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'detail': 'You should provide correct user token in the request header'})
