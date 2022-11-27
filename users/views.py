@@ -89,7 +89,7 @@ def verify_phone_send_otp_code(request):
 
                             # send_otp_code(phone[1:], str(key))
 
-                            return Response({'detail': 'Six digit code has been set to your phone number', 'phone': phone, 'resend_at': new_phone_otp.resend_at, 'expire_at': new_phone_otp.expire_at})
+                            return Response({'detail': 'Six digit code has been sent to your phone number', 'phone': phone, 'resend_at': new_phone_otp.resend_at, 'expire_at': new_phone_otp.expire_at})
                         else:
                             count = phone_otp.count
 
@@ -105,7 +105,7 @@ def verify_phone_send_otp_code(request):
 
                                     # send_otp_code(phone[1:], str(key))
 
-                                    return Response({'detail': 'Six digit code has been set to your phone numbe', 'phone': phone, 'resend_at': phone_otp.resend_at, 'expire_at': phone_otp.expire_at})                
+                                    return Response({'detail': 'Six digit code has been sent to your phone numbe', 'phone': phone, 'resend_at': phone_otp.resend_at, 'expire_at': phone_otp.expire_at})                
                                 else:
                                     return Response({'detail': 'Please wait for a resend'}, status=status.HTTP_400_BAD_REQUEST)
                             else:
@@ -120,7 +120,7 @@ def verify_phone_send_otp_code(request):
 
                         # send_otp_code(phone[1:], str(key))
 
-                        return Response({'detail': 'Six digit code has been set to your phone numbe', 'phone': phone, 'resend_at': new_phone_otp.resend_at, 'expire_at': new_phone_otp.expire_at})
+                        return Response({'detail': 'Six digit code has been sent to your phone numbe', 'phone': phone, 'resend_at': new_phone_otp.resend_at, 'expire_at': new_phone_otp.expire_at})
                 else:
                     return Response({'detail': 'Something wrong when sending the code'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
@@ -265,4 +265,4 @@ def logout(request):
         else:
             return Response({'detail': 'User doesnt exist'}, status=status.HTTP_404_NOT_FOUND)
     else:
-        return Response({'detail': 'You should provide correct user token in the request header'})
+        return Response({'detail': 'You should provide correct user token in the request header'}, status=status.HTTP_401_UNAUTHORIZED)
